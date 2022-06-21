@@ -1,0 +1,11 @@
+name: pyprt-examples-feature-layer-update
+channels:
+  - esri
+  - conda-forge
+  - defaults
+  - anaconda
+dependencies:
+  - python=3.7
+  - pyprt  
+  - arcgis=2.0.1
+  - arcpy=2.9
