@@ -52,31 +52,28 @@ def update_multipatch_feature_layer():
     shutil.copytree(TARGET_GDB_TEMPLATE_PATH, temp_filegdb_path)
 
     # gdb = GDB_DRIVER.Open(str(temp_filegdb_path), 0)
-    # multipatch_layer = gdb.GetLayerByName("pyprt_update_test_ProcedurallyGeneratedMultipatches")
+    # multipatch_layer = gdb.GetLayerByName("")
     # print(multipatch_layer)
 
     arcpy.env.workspace = str(temp_filegdb_path)
-    dataset_list = arcpy.ListFeatureClasses("*")
-    for dataset in dataset_list:
-        with arcpy.da.SearchCursor(dataset, "*") as cur:
-            for row in cur:
-                print(row)
+    multipatch_feature_class = arcpy.ListFeatureClasses("pyprt_update_test_ProcedurallyGeneratedMultipatches")[0]
+    with arcpy.da.UpdateCursor(multipatch_feature_class, "Shape") as feature_cursor:
+        for row in feature_cursor: # TODO
 
-    # workaround: generate features one-by-one to avoid overwriting the resulting multipatch data files
-    temp_multipatch_data_path = temp_dir.joinpath(MULTIPATCH_DATA_FILE)
-    for source_feature in source_features:
-        oid = source_feature.get_value('objectid')
-        pyprt_initial_shapes = arcgis_to_pyprt(arcgis.features.FeatureSet([source_feature]))
-        pyprt_model_generator = pyprt.ModelGenerator(pyprt_initial_shapes)
-        pyprt_model_generator.generate_model(attrs, str(rpk), SHAPE_BUFFER_ENCODER_ID, pyprt_shapebuffer_options)
+            # workaround: generate features one-by-one to avoid overwriting the resulting multipatch data files
+            temp_multipatch_data_path = temp_dir.joinpath(MULTIPATCH_DATA_FILE)
+            for source_feature in source_features:
+                oid = source_feature.get_value('objectid')
+                pyprt_initial_shapes = arcgis_to_pyprt(arcgis.features.FeatureSet([source_feature]))
+                pyprt_model_generator = pyprt.ModelGenerator(pyprt_initial_shapes)
+                pyprt_model_generator.generate_model(attrs, str(rpk), SHAPE_BUFFER_ENCODER_ID, pyprt_shapebuffer_options)
 
-        with open(temp_multipatch_data_path, mode='rb') as multipatch_file:  # b is important -> binary
-            multipatch_data = multipatch_file.read()
-            print(f"read multipatch: {len(multipatch_data)} bytes")
+                with open(temp_multipatch_data_path, mode='rb') as multipatch_file:  # b is important -> binary
+                    multipatch_data = multipatch_file.read()
+                    print(f"read multipatch: {len(multipatch_data)} bytes")
 
-        # gdb_feature = multipatch_layer.GetNextFeature()
-        # gdb_feature_geo = gdb_feature.GetGeometryRef()
-        # gdb_feature.SetGeometry(multipatch_data)
+                row[0] = multipatch_data
+                feature_cursor.updateRow(row)
 
     # target_feature_layer_collection = gis.content.get(target_feature_layer_id)
     # target_feature_layer = target_feature_layer_collection.layers[0]
@@ -85,7 +82,7 @@ def update_multipatch_feature_layer():
     #target_feature_layer.append(item_id=fgdb_upload_id, upsert=True, update_geometry=True, upload_format='filegdb', upsert_matching_field='objectid', source_table_name="pyprt_tests", return_messages=True)
 
     pyprt.shutdown_prt()
-    temp_dir.cleanup()
+    temp_dir_obj.cleanup()
 
 
 if __name__ == '__main__':
